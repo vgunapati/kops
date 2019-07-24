@@ -32,6 +32,9 @@ data:
           "etcd_scheme": "https",
           {{- end }}
           "log_level": "info",
+          {{- if .Networking.Calico.MTU }}
+          "mtu": {{- or .Networking.Calico.MTU }},
+          {{- end }}
           "ipam": {
             "type": "calico-ipam"
           },
@@ -192,7 +195,7 @@ spec:
         # container programs network policy and routes on each
         # host.
         - name: calico-node
-          image: quay.io/calico/node:v3.3.1
+          image: quay.io/calico/node:v3.7.4
           env:
             # The location of the Calico etcd cluster.
             - name: ETCD_ENDPOINTS
@@ -259,6 +262,10 @@ spec:
               value: "autodetect"
             - name: FELIX_HEALTHENABLED
               value: "true"
+            {{- if .Networking.Calico.MTU }}
+            - name: FELIX_IPINIPMTU
+              value: "{{- or .Networking.Calico.MTU }}"
+            {{- end}}
           securityContext:
             privileged: true
           resources:
@@ -301,7 +308,7 @@ spec:
         # This container installs the Calico CNI binaries
         # and CNI network config file on each node.
         - name: install-cni
-          image: quay.io/calico/cni:v3.3.1
+          image: quay.io/calico/cni:v3.7.4
           command: ["/install-cni.sh"]
           env:
             # Name of the CNI config file to create.
@@ -439,7 +446,7 @@ spec:
       serviceAccountName: calico-kube-controllers
       containers:
         - name: calico-kube-controllers
-          image: quay.io/calico/kube-controllers:v3.3.1
+          image: quay.io/calico/kube-controllers:v3.7.4
           resources:
             requests:
               cpu: 10m
@@ -597,7 +604,7 @@ spec:
           command: ['/bin/sh', '-c', '/completion-job.sh']
           env:
             - name: EXPECTED_NODE_IMAGE
-              value: quay.io/calico/node:v3.3.1
+              value: quay.io/calico/node:v3.7.4
             # The location of the Calico etcd cluster.
             - name: CALICO_ETCD_ENDPOINTS
               valueFrom:
